@@ -5,23 +5,31 @@ GCC := gcc
 workspace := 
 
 
-all: reservTicket
+all: client server
 
-reservTicket: $(workspace)obj/main.o
-ifneq ("$(wildcard $(workspace)bin)", "")
-	@echo "bin exists"
-else
+
+client: bin $(workspace)obj/client.o
+	$(GCC) -o $(workspace)bin/client $(workspace)obj/client.o
+
+server: bin $(workspace)obj/server.o
+	$(GCC) -o $(workspace)bin/server $(workspace)obj/server.o
+
+$(workspace)obj/client.o: obj $(workspace)src/client.c
+	$(GCC) -o $(workspace)obj/client.o -c $(workspace)src/client.c
+
+$(workspace)obj/server.o: obj $(workspace)src/server.c
+	$(GCC) -o $(workspace)obj/server.o -c $(workspace)src/server.c
+
+bin:
+ifeq ("$(wildcard $(workspace)bin)", "")
 	mkdir $(workspace)bin
 endif
-	$(GCC) -o $(workspace)bin/reservTicket $(workspace)obj/main.o
 
-$(workspace)obj/main.o: $(workspace)src/main.c
-ifneq ("$(wildcard $(workspace)obj)", "")
-	@echo "obj exists"
-else
+obj:
+ifeq ("$(wildcard $(workspace)obj)", "")
 	mkdir $(workspace)obj
 endif
-	$(GCC) -o $(workspace)obj/main.o -c $(workspace)src/main.c
+
 
 # exemple de fichier à compiler
 #$(workspace)obj/dummy.o: $(workspace)src/dummy.c
