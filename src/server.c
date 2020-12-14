@@ -6,22 +6,26 @@
 #include <netinet/in.h>
 #include <string.h>
 #include <arpa/inet.h> 
+#include <stdbool.h>
+#include <pthread.h>
+#include <stddef.h>
 
 typedef struct
 {
   struct sockaddr_in coordonneesAppelant;
   int fdSocketCommunication;
-} var_struc;
+} connection;
 
 void *thread(void *arg) {
   char tampon[100];
-  var_struc *temp = (var_struc *)arg;
+  int nbRecu;
+  connection *temp = (connection *)arg;
 
   printf("Client connecté : %s\n", inet_ntoa(temp->coordonneesAppelant.sin_addr)); //affiche l'adresse ip du client
   while(true) {
     nbRecu=recv(temp->fdSocketCommunication,tampon,99,0);
     if(nbRecu>0) {
-      tampon[nbRecu]=0;
+      tampon[nbRecu]='\0';
       printf("Recu:%s\n",tampon);
     }  
     fgets(tampon, 100, stdin);
@@ -73,19 +77,18 @@ int main()
 
   socklen_t tailleCoord=sizeof(coordonneesAppelant);
 
-  while(true){ 
+  while(true) { 
     printf("En attente d'une connexion :\n ");
     
     if((fdSocketCommunication=accept(fdSocketAttente,(struct sockaddr*)&coordonneesAppelant,&tailleCoord)) == -1)
       printf("erreur de accept\n");
     else {
-      var_struc t;
-      t.coordonneesAppelant = coordonneesAppelant;
-      t.fdSocketCommunication = fdSocketCommunication;
+      connection con;
+      con.coordonneesAppelant = coordonneesAppelant;
+      con.fdSocketCommunication = fdSocketCommunication;
 
       pthread_t my_thread1;
-      int ret1 = pthread_create(&my_thread1, NULL, thread, (void *)&t);
-      pthread_join(my_thread1, NULL);
+      int ret1 = pthread_create(&my_thread1, NULL, thread, (void *)&con);
     }
     
   } 

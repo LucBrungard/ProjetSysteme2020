@@ -12,7 +12,8 @@ client: bin $(workspace)obj/client.o
 	$(GCC) -o $(workspace)bin/client $(workspace)obj/client.o
 
 server: bin $(workspace)obj/server.o
-	$(GCC) -o $(workspace)bin/server $(workspace)obj/server.o
+	$(GCC) -o $(workspace)bin/server $(workspace)obj/server.o -lpthread
+
 
 $(workspace)obj/client.o: obj $(workspace)src/client.c
 	$(GCC) -o $(workspace)obj/client.o -c $(workspace)src/client.c
