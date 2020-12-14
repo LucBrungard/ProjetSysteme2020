@@ -22,3 +22,13 @@ else
 	mkdir $(workspace)obj
 endif
 	$(GCC) -o $(workspace)obj/main.o -c $(workspace)src/main.c
+
+# exemple de fichier à compiler
+#$(workspace)obj/dummy.o: $(workspace)src/dummy.c
+#	$(GCC) -o $(workspace)obj/dummy.o -c $(workspace)src/dummy.c
+
+#<id>: <dépendances>
+#    <commandes shell>
+
+#compiler: $(workspace)src/dummy.o   <- on demande "dummy.o"
+#	des commandes shell...
