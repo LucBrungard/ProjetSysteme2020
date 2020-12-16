@@ -11,6 +11,17 @@
 #include <stddef.h>
 #include "Server.h"
 
+typedef struct _server
+{
+    int _fdCommunicationSocket;
+    int _fdWaitSocket;
+    struct sockaddr_in _callerCoords;
+    socklen_t _coordsSize;
+    void (*_onConnect)(Client);
+    void (*_onDisconnect)(Client);
+    void (*_onMessage)(Client, void *, int, void **, int *);
+} * Server;
+
 typedef struct
 {
     struct sockaddr_in callerCoords;

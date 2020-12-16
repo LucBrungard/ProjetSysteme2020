@@ -5,16 +5,7 @@
 
 #include "Client.h"
 
-typedef struct
-{
-    int _fdCommunicationSocket;
-    int _fdWaitSocket;
-    struct sockaddr_in _callerCoords;
-    socklen_t _coordsSize;
-    void (*_onConnect)(Client);
-    void (*_onDisconnect)(Client);
-    void (*_onMessage)(Client, void *, int, void **, int *);
-} * Server;
+typedef struct _server *Server;
 /**
  * @brief  Initialize a new instance of a server
  * @param Server server to initiate
