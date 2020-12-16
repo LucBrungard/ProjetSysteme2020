@@ -26,11 +26,11 @@ typedef struct
     struct sockaddr_in callerCoords;
     int fdSocket;
     Server server;
-} connexion;
+} connection;
 
 void *clientThread(void *arg)
 {
-    connexion *con = (connexion *)arg;
+    connection *con = (connection *)arg;
     struct _client_ client;
     client._ip = con->callerCoords.sin_addr;
     char user[65];
@@ -123,7 +123,7 @@ bool Server_run(Server server)
         }
         else
         {
-            connexion *con = (connexion *)malloc(sizeof(connexion));
+            connection *con = (connection *)malloc(sizeof(connection));
             con->callerCoords = server->_callerCoords;
             con->fdSocket = fdCommunicationSocket;
             con->server = server;
