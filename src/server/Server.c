@@ -19,7 +19,7 @@ typedef struct _server
     socklen_t _coordsSize;
     void (*_onConnect)(Client);
     void (*_onDisconnect)(Client);
-    void (*_onMessage)(Client, void *, int, void **, int *);
+    size_t (*_onMessage)(Client, void *, size_t, void *);
 } * Server;
 
 typedef struct
@@ -34,6 +34,45 @@ void *clientThread(void *arg)
     connexion *con = (connexion *)arg;
     Client client;
     client->_ip = con->callerCoords.sin_addr;
+    char user[65];
+    {
+        int readBytes = recv(con->fdSocket, user, 64, 0);
+        if (readBytes > 0)
+        {
+            user[readBytes] = '\0';
+            client->_username = user;
+        }
+        else
+        {
+            close(con->fdSocket);
+            return;
+        }
+    }
+    if (con->server->_onConnect != NULL)
+        (*con->server->_onConnect)(client);
+    while (true)
+    {
+        void *buffer = malloc(32000);
+        int readBytes = recv(con->fdSocket, buffer, 32768, 0);
+        if (readBytes > 0)
+        {
+            void *response = malloc(32000);
+            int respSize = 0;
+            if (con->server->_onMessage != NULL)
+                respSize = (*con->server->_onMessage)(client, buffer, readBytes, response);
+            send(con->fdSocket, response, respSize, 0);
+            free(buffer);
+            free(response);
+        }
+        else
+        {
+            free(buffer);
+            break;
+        }
+    }
+    close(con->fdSocket);
+    if (con->server->_onDisconnect != NULL)
+        (*con->server->_onDisconnect)(client);
 }
 
 bool Server_init(Server server, int port)
@@ -65,14 +104,17 @@ bool Server_init(Server server, int port)
     server->_coordsSize = sizeof(server->_callerCoords);
     return true;
 }
-void Server_run(Server server)
+bool Server_run(Server server)
 {
     while (true)
     {
         printf("En attente d'une connexion :\n ");
 
         if ((server->_fdCommunicationSocket = accept(server->_fdCommunicationSocket, (struct sockaddr *)&server->_callerCoords, &server->_coordsSize)) == -1)
-            printf("erreur de accept\n");
+        {
+            printf("accept error\n");
+            return false;
+        }
         else
         {
             connexion con;
@@ -80,11 +122,12 @@ void Server_run(Server server)
             con.fdSocket = server->_fdCommunicationSocket;
 
             pthread_t my_thread1;
-            int ret1 = pthread_create(&my_thread1, NULL, clientThread, (void *)&con);
+            pthread_create(&my_thread1, NULL, clientThread, (void *)&con);
         }
     }
 
     close(server->_fdWaitSocket);
+    return false;
 }
 void Server_onConnectedClient(Server server, void (*fct)(Client))
 {
@@ -94,7 +137,7 @@ void Server_onDisconnectedClient(Server server, void (*fct)(Client))
 {
     server->_onDisconnect = fct;
 }
-void Server_onMessageRecieved(Server server, void (*fct)(Client, void *, int, void **, int *))
+void Server_onMessageRecieved(Server server, size_t (*fct)(Client, void *, size_t, void *))
 {
     server->_onMessage = fct;
 }

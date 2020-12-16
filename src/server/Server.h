@@ -28,17 +28,17 @@ void Server_onConnectedClient(Server, void (*)(Client));
  */
 void Server_onDisconnectedClient(Server, void (*)(Client));
 /**
- * @brief  Event triggered when a client sent a message to the server
+ * @brief  Event triggered when a client sent a message to the server. The data is already allocated for 32000 bytes.
  * @param Server server to use
- * @param  void(*)(Client,void*,int,void**,int*) function to call when the event is triggered. Note : void* is the data, int id its size, void** is a pointer to the response data and int* the size of the response.
+ * @param  size_t(*)(Client,void*,size_t,void*) function to call when the event is triggered. Note : void* is the data, size_t is its size, void* is the response data and the return value is the size of the response 
  * @return void
  */
-void Server_onMessageRecieved(Server, void (*)(Client, void *, int, void **, int *));
+void Server_onMessageRecieved(Server, size_t (*)(Client, void *, size_t, void *));
 /**
  * @brief  Starts the server. The thread will be blocked.
  * @param Server server to use
- * @return void
+ * @return false if the server couldn't run
  */
-void Server_run(Server);
+bool Server_run(Server);
 
 #endif
