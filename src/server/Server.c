@@ -11,7 +11,7 @@
 #include <stddef.h>
 #include "Server.h"
 
-typedef struct _server
+struct _server_
 {
     int _fdCommunicationSocket;
     int _fdWaitSocket;
@@ -20,7 +20,7 @@ typedef struct _server
     void (*_onConnect)(Client);
     void (*_onDisconnect)(Client);
     size_t (*_onMessage)(Client, void *, size_t, void *);
-} * Server;
+};
 
 typedef struct
 {
@@ -45,7 +45,7 @@ void *clientThread(void *arg)
         else
         {
             close(con->fdSocket);
-            return;
+            return NULL;
         }
     }
     if (con->server->_onConnect != NULL)
@@ -53,11 +53,11 @@ void *clientThread(void *arg)
     while (true)
     {
         void *buffer = malloc(32000);
-        int readBytes = recv(con->fdSocket, buffer, 32768, 0);
-        if (readBytes > 0)
+        ssize_t readBytes = recv(con->fdSocket, buffer, 32000, 0);
+        if (readBytes >= 0)
         {
             void *response = malloc(32000);
-            int respSize = 0;
+            size_t respSize = 0;
             if (con->server->_onMessage != NULL)
                 respSize = (*con->server->_onMessage)(client, buffer, readBytes, response);
             send(con->fdSocket, response, respSize, 0);
@@ -74,9 +74,13 @@ void *clientThread(void *arg)
     if (con->server->_onDisconnect != NULL)
         (*con->server->_onDisconnect)(client);
 }
-
-bool Server_init(Server server, int port)
+void Server_destroy(Server server)
 {
+    free(server);
+}
+Server Server_create(uint16_t port)
+{
+    Server server = (Server)malloc(sizeof(struct _server_));
     struct sockaddr_in serverCoords;
     server->_fdWaitSocket = socket(PF_INET, SOCK_STREAM, 0);
     if (server->_fdWaitSocket < 0)
@@ -94,22 +98,22 @@ bool Server_init(Server server, int port)
     if (bind(server->_fdWaitSocket, (struct sockaddr *)&serverCoords, sizeof(serverCoords)) == -1)
     {
         printf("bind error\n");
-        return false;
+        free(server);
+        return NULL;
     }
     if (listen(server->_fdWaitSocket, 5) == -1)
     {
         printf("listen error\n");
-        return false;
+        free(server);
+        return NULL;
     }
     server->_coordsSize = sizeof(server->_callerCoords);
-    return true;
+    return server;
 }
 bool Server_run(Server server)
 {
     while (true)
     {
-        printf("En attente d'une connexion :\n ");
-
         if ((server->_fdCommunicationSocket = accept(server->_fdCommunicationSocket, (struct sockaddr *)&server->_callerCoords, &server->_coordsSize)) == -1)
         {
             printf("accept error\n");

@@ -12,7 +12,7 @@ typedef struct
  * @param Client client to use
  * @return integer of the IP address 
  */
-in_addr_t Client_getIpI(Client);
+struct in_addr Client_getIpI(Client);
 /**
  * @brief  Returns the IP address of the client.
  * @param Client client to use

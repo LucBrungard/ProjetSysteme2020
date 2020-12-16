@@ -5,14 +5,19 @@
 
 #include "Client.h"
 
-typedef struct _server *Server;
+typedef struct _server_ *Server;
 /**
  * @brief  Initialize a new instance of a server
- * @param Server server to initiate
- * @param int port to use for the server
- * @return true if the server initialized correctly
+ * @param uint16_t port to use for the server
+ * @return the newly created server, or NULL if there is an error
  */
-bool Server_init(Server, int);
+Server Server_create(uint16_t);
+/**
+ * @brief  Destroies the server
+ * @param Server server to use
+ * @return void
+ */
+void Server_destroy(Server);
 /**
  * @brief  Event triggered when a client is connected to the server
  * @param Server server to use

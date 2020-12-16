@@ -5,9 +5,9 @@ char *Client_getIpS(Client client)
 {
     return inet_ntoa(client->_ip);
 }
-in_addr_t Client_getIpI(Client client)
+struct in_addr Client_getIpI(Client client)
 {
-    return client->_ip.s_addr;
+    return client->_ip;
 }
 char *Client_getUsername(Client client)
 {
