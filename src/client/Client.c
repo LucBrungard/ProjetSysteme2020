@@ -36,6 +36,7 @@ Client Client_createI(char *username, struct in_addr ip, uint16_t port)
         printf("Unable to connect\n");
         return NULL;
     }
+    send(client->_fdSocket, username, strlen(username), 0);
     return client;
 }
 Client Client_createS(char *username, char *ip, uint16_t port)
@@ -54,8 +55,13 @@ void Client_dedstroy(Client client)
 }
 ssize_t Client_send(Client client, void *request, size_t reqSize, void *response)
 {
+    if (reqSize == 0)
+    {
+        printf("data size can not be 0");
+        return 0;
+    }
     send(client->_fdSocket, request, reqSize, 0);
-    int respSize = recv(client->_fdSocket, response, 32000, 0);
+    ssize_t respSize = recv(client->_fdSocket, response, 4800, 0);
     if (respSize == -1)
         close(client->_fdSocket);
     return respSize;

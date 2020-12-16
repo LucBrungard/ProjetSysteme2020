@@ -12,9 +12,10 @@ void clientDisconnected(Client client)
 }
 size_t message(Client client, void *data, size_t dataSize, void *buffer)
 {
-    printf("%s@%s:%s\nResponse:", Client_getUsername(client), Client_getIpS(client), (char *)data);
-    fgets(buffer, 32000, stdin);
-    return strlen(buffer);
+    printf("%s@%s:%s", Client_getUsername(client), Client_getIpS(client), (char *)data);
+    for (int i = 0; i < dataSize - 1; i++)
+        ((char *)buffer)[i] = ((char *)data)[i] + 1;
+    return dataSize;
 }
 
 int main()

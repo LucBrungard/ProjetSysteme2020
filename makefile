@@ -3,7 +3,7 @@
 
 CC := gcc
 workspace := 
-FLAGS := 
+FLAGS := -g
 
 
 all: client server

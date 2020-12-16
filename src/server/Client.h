@@ -2,7 +2,7 @@
 #define DEF_SERVER_CLIENT_H
 #include <netinet/in.h>
 
-typedef struct
+typedef struct _client_
 {
     struct in_addr _ip;
     char *_username;

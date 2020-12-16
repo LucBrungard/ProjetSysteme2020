@@ -13,7 +13,6 @@
 
 struct _server_
 {
-    int _fdCommunicationSocket;
     int _fdWaitSocket;
     struct sockaddr_in _callerCoords;
     socklen_t _coordsSize;
@@ -32,15 +31,15 @@ typedef struct
 void *clientThread(void *arg)
 {
     connexion *con = (connexion *)arg;
-    Client client;
-    client->_ip = con->callerCoords.sin_addr;
+    struct _client_ client;
+    client._ip = con->callerCoords.sin_addr;
     char user[65];
     {
         int readBytes = recv(con->fdSocket, user, 64, 0);
-        if (readBytes > 0)
+        if (readBytes >= 0)
         {
             user[readBytes] = '\0';
-            client->_username = user;
+            client._username = user;
         }
         else
         {
@@ -49,19 +48,18 @@ void *clientThread(void *arg)
         }
     }
     if (con->server->_onConnect != NULL)
-        (*con->server->_onConnect)(client);
+        (*con->server->_onConnect)(&client);
     while (true)
     {
-        void *buffer = malloc(32000);
-        ssize_t readBytes = recv(con->fdSocket, buffer, 32000, 0);
-        if (readBytes >= 0)
+        void *buffer = malloc(4800);
+        ssize_t readBytes = recv(con->fdSocket, buffer, 4800, 0);
+        if (readBytes > 0)
         {
-            void *response = malloc(32000);
+            void *response = malloc(4800);
             size_t respSize = 0;
             if (con->server->_onMessage != NULL)
-                respSize = (*con->server->_onMessage)(client, buffer, readBytes, response);
+                respSize = (*con->server->_onMessage)(&client, buffer, readBytes, response);
             send(con->fdSocket, response, respSize, 0);
-            free(buffer);
             free(response);
         }
         else
@@ -69,10 +67,13 @@ void *clientThread(void *arg)
             free(buffer);
             break;
         }
+        free(buffer);
     }
+    free(con);
     close(con->fdSocket);
     if (con->server->_onDisconnect != NULL)
-        (*con->server->_onDisconnect)(client);
+        (*con->server->_onDisconnect)(&client);
+    pthread_exit(NULL);
 }
 void Server_destroy(Server server)
 {
@@ -101,7 +102,7 @@ Server Server_create(uint16_t port)
         free(server);
         return NULL;
     }
-    if (listen(server->_fdWaitSocket, 5) == -1)
+    if (listen(server->_fdWaitSocket, 32) == -1)
     {
         printf("listen error\n");
         free(server);
@@ -114,19 +115,20 @@ bool Server_run(Server server)
 {
     while (true)
     {
-        if ((server->_fdCommunicationSocket = accept(server->_fdCommunicationSocket, (struct sockaddr *)&server->_callerCoords, &server->_coordsSize)) == -1)
+        int fdCommunicationSocket;
+        if ((fdCommunicationSocket = accept(server->_fdWaitSocket, (struct sockaddr *)&server->_callerCoords, &server->_coordsSize)) == -1)
         {
             printf("accept error\n");
             return false;
         }
         else
         {
-            connexion con;
-            con.callerCoords = server->_callerCoords;
-            con.fdSocket = server->_fdCommunicationSocket;
-
+            connexion *con = (connexion *)malloc(sizeof(connexion));
+            con->callerCoords = server->_callerCoords;
+            con->fdSocket = fdCommunicationSocket;
+            con->server = server;
             pthread_t my_thread1;
-            pthread_create(&my_thread1, NULL, clientThread, (void *)&con);
+            pthread_create(&my_thread1, NULL, clientThread, con);
         }
     }
 

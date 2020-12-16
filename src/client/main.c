@@ -14,10 +14,9 @@ int main()
         char buffer[1000];
         fgets(buffer, 1000, stdin);
         char response[1000];
-        if (Client_send(client, buffer, strlen(buffer), response) == -1)
-            break;
-        else
-            printf("Response:%s\n", response);
+        int size = Client_send(client, buffer, strlen(buffer) + 1, response);
+        if (size != -1)
+            printf("Response:%s", response);
     }
     return 0;
 }
