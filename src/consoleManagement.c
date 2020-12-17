@@ -70,6 +70,7 @@ void console_formatMode(char *content, uint8_t flags, ...)
         firstAdded = true;
     }
     if (flags & CONSOLE_FLAG_UNDERLINE)
+    {
         if (firstAdded)
             strcat(str, ";4");
         else
@@ -77,7 +78,9 @@ void console_formatMode(char *content, uint8_t flags, ...)
             strcat(str, "4");
             firstAdded = true;
         }
+    }
     if (flags & CONSOLE_FLAG_BLINK)
+    {
         if (firstAdded)
             strcat(str, ";5");
         else
@@ -85,11 +88,14 @@ void console_formatMode(char *content, uint8_t flags, ...)
             strcat(str, "5");
             firstAdded = true;
         }
+    }
     if (flags & CONSOLE_FLAG_REVERSE_COLOR)
+    {
         if (firstAdded)
             strcat(str, ";7");
         else
             strcat(str, "7");
+    }
     printf("\x1b[%sm", str);
     vprintf(content, args);
     printf("\x1b[0m");
@@ -302,6 +308,8 @@ int console_getArrowPressed()
             return CONSOLE_KEY_LEFT;
         case 67:
             return CONSOLE_KEY_RIGHT;
+        default:
+            return CONSOLE_KEY_OTHER;
         }
     }
     else if (var == 10)
