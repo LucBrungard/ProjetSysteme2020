@@ -58,8 +58,10 @@ color console_color(uint8_t r, uint8_t g, uint8_t b)
     c.b = b;
     return c;
 }
-void console_formatMode(char *content, uint8_t flags)
+void console_formatMode(char *content, uint8_t flags, ...)
 {
+    va_list args;
+    va_start(args, flags);
     char str[50] = "";
     bool firstAdded = false;
     if (flags & CONSOLE_FLAG_BOLD)
@@ -88,14 +90,24 @@ void console_formatMode(char *content, uint8_t flags)
             strcat(str, ";7");
         else
             strcat(str, "7");
-    printf("\x1b[%sm%s\x1b[0m", str, content);
+    printf("\x1b[%sm", str);
+    vprintf(content, args);
+    printf("\x1b[0m");
+    va_end(args);
 }
-void console_formatRGBBackground(char *content, color background)
+void console_formatRGBBackground(char *content, color background, ...)
 {
-    printf("\x1b[48;2;%d;%d;%dm%s\x1b[0m", background.r, background.g, background.b, content);
+    va_list args;
+    va_start(args, background);
+    printf("\x1b[48;2;%d;%d;%dm", background.r, background.g, background.b);
+    vprintf(content, args);
+    printf("\x1b[0m");
+    va_end(args);
 }
-void console_formatRGBBackgroundMode(char *content, color background, uint8_t flags)
+void console_formatRGBBackgroundMode(char *content, color background, uint8_t flags, ...)
 {
+    va_list args;
+    va_start(args, flags);
     char str[50];
     snprintf(str, 50, "48;2;%d;%d;%d", background.r, background.g, background.b);
     if (flags & CONSOLE_FLAG_BOLD)
@@ -106,14 +118,24 @@ void console_formatRGBBackgroundMode(char *content, color background, uint8_t fl
         strcat(str, ";5");
     if (flags & CONSOLE_FLAG_REVERSE_COLOR)
         strcat(str, ";7");
-    printf("\x1b[%sm%s\x1b[0m", str, content);
+    printf("\x1b[%sm", str);
+    vprintf(content, args);
+    printf("\x1b[0m");
+    va_end(args);
 }
-void console_formatSystemBackground(char *content, int background)
+void console_formatSystemBackground(char *content, int background, ...)
 {
-    printf("\x1b[%dm%s\x1b[0m", background, content);
+    va_list args;
+    va_start(args, background);
+    printf("\x1b[%dm", background);
+    vprintf(content, args);
+    printf("\x1b[0m");
+    va_end(args);
 }
-void console_formatSystemBackgroundMode(char *content, int background, uint8_t flags)
+void console_formatSystemBackgroundMode(char *content, int background, uint8_t flags, ...)
 {
+    va_list args;
+    va_start(args, flags);
     char str[50];
     snprintf(str, 50, "%d", background + 10);
     if (flags & CONSOLE_FLAG_BOLD)
@@ -124,14 +146,24 @@ void console_formatSystemBackgroundMode(char *content, int background, uint8_t f
         strcat(str, ";5");
     if (flags & CONSOLE_FLAG_REVERSE_COLOR)
         strcat(str, ";7");
-    printf("\x1b[%sm%s\x1b[0m", str, content);
+    printf("\x1b[%sm", str);
+    vprintf(content, args);
+    printf("\x1b[0m");
+    va_end(args);
 }
-void console_formatRGBForeground(char *content, color foreground)
+void console_formatRGBForeground(char *content, color foreground, ...)
 {
-    printf("\x1b[38;2;%d;%d;%dm%s\x1b[0m", foreground.r, foreground.g, foreground.b, content);
+    va_list args;
+    va_start(args, foreground);
+    printf("\x1b[38;2;%d;%d;%dm", foreground.r, foreground.g, foreground.b);
+    vprintf(content, args);
+    printf("\x1b[0m");
+    va_end(args);
 }
-void console_formatRGBForegroundMode(char *content, color foreground, uint8_t flags)
+void console_formatRGBForegroundMode(char *content, color foreground, uint8_t flags, ...)
 {
+    va_list args;
+    va_start(args, flags);
     char str[50];
     snprintf(str, 50, "38;2;%d;%d;%d", foreground.r, foreground.g, foreground.b);
     if (flags & CONSOLE_FLAG_BOLD)
@@ -142,14 +174,24 @@ void console_formatRGBForegroundMode(char *content, color foreground, uint8_t fl
         strcat(str, ";5");
     if (flags & CONSOLE_FLAG_REVERSE_COLOR)
         strcat(str, ";7");
-    printf("\x1b[%sm%s\x1b[0m", str, content);
+    printf("\x1b[%sm", str);
+    vprintf(content, args);
+    printf("\x1b[0m");
+    va_end(args);
 }
-void console_formatSystemForeground(char *content, int foreground)
+void console_formatSystemForeground(char *content, int foreground, ...)
 {
-    printf("\x1b[%dm%s\x1b[0m", foreground, content);
+    va_list args;
+    va_start(args, foreground);
+    printf("\x1b[%dm", foreground);
+    vprintf(content, args);
+    printf("\x1b[0m");
+    va_end(args);
 }
-void console_formatSystemForegroundMode(char *content, int foreground, uint8_t flags)
+void console_formatSystemForegroundMode(char *content, int foreground, uint8_t flags, ...)
 {
+    va_list args;
+    va_start(args, flags);
     char str[50];
     snprintf(str, 50, "%d", foreground);
     if (flags & CONSOLE_FLAG_BOLD)
@@ -160,15 +202,25 @@ void console_formatSystemForegroundMode(char *content, int foreground, uint8_t f
         strcat(str, ";5");
     if (flags & CONSOLE_FLAG_REVERSE_COLOR)
         strcat(str, ";7");
-    printf("\x1b[%sm%s\x1b[0m", str, content);
+    printf("\x1b[%sm", str);
+    vprintf(content, args);
+    printf("\x1b[0m");
+    va_end(args);
 }
 
-void console_formatRGBColor(char *content, color foreground, color background)
+void console_formatRGBColor(char *content, color foreground, color background, ...)
 {
-    printf("\x1b[38;2;%d;%d;%d;48;2;%d;%d;%dm%s\x1b[0m", foreground.r, foreground.g, foreground.b, background.r, background.g, background.b, content);
+    va_list args;
+    va_start(args, background);
+    printf("\x1b[38;2;%d;%d;%d;48;2;%d;%d;%dm", foreground.r, foreground.g, foreground.b, background.r, background.g, background.b);
+    vprintf(content, args);
+    printf("\x1b[0m");
+    va_end(args);
 }
-void console_formatRGBColorMode(char *content, color foreground, color background, uint8_t flags)
+void console_formatRGBColorMode(char *content, color foreground, color background, uint8_t flags, ...)
 {
+    va_list args;
+    va_start(args, flags);
     char str[50];
     snprintf(str, 50, "38;2;%d;%d;%d;48;2;%d;%d;%d", foreground.r, foreground.g, foreground.b, background.r, background.g, background.b);
     if (flags & CONSOLE_FLAG_BOLD)
@@ -179,14 +231,24 @@ void console_formatRGBColorMode(char *content, color foreground, color backgroun
         strcat(str, ";5");
     if (flags & CONSOLE_FLAG_REVERSE_COLOR)
         strcat(str, ";7");
-    printf("\x1b[%sm%s\x1b[0m", str, content);
+    printf("\x1b[%sm", str);
+    vprintf(content, args);
+    printf("\x1b[0m");
+    va_end(args);
 }
-void console_formatSystemColor(char *content, int foreground, int background)
+void console_formatSystemColor(char *content, int foreground, int background, ...)
 {
-    printf("\x1b[%d;%dm%s\x1b[0m", foreground, background + 10, content);
+    va_list args;
+    va_start(args, background);
+    printf("\x1b[%d;%dm", foreground, background + 10);
+    vprintf(content, args);
+    printf("\x1b[0m");
+    va_end(args);
 }
-void console_formatSystemColorMode(char *content, int foreground, int background, uint8_t flags)
+void console_formatSystemColorMode(char *content, int foreground, int background, uint8_t flags, ...)
 {
+    va_list args;
+    va_start(args, flags);
     char str[50];
     snprintf(str, 50, "%d;%d", foreground, background + 10);
     if (flags & CONSOLE_FLAG_BOLD)
@@ -197,7 +259,10 @@ void console_formatSystemColorMode(char *content, int foreground, int background
         strcat(str, ";5");
     if (flags & CONSOLE_FLAG_REVERSE_COLOR)
         strcat(str, ";7");
-    printf("\x1b[%sm%s\x1b[0m", str, content);
+    printf("\x1b[%sm", str);
+    vprintf(content, args);
+    printf("\x1b[0m");
+    va_end(args);
 }
 void console_saveCursorPosition()
 {
@@ -211,24 +276,13 @@ void console_eraseEndOfLine()
 {
     printf("\x1b[K");
 }
-void console_moveCursorPosition(int x, int y)
-{
-    if (x > 0)
-        printf("\x1b[%dC", x);
-    else if (x < 0)
-        printf("\x1b[%dD", -x);
-    if (y > 0)
-        printf("\x1b[%dA", y);
-    else if (x < 0)
-        printf("\x1b[%dB", -y);
-}
 void console_setCursorPosition(int x, int y)
 {
     printf("\x1b[%d;%dH", y, x);
 }
 void console_clearScreen()
 {
-    printf("\x1b[2J");
+    printf("\x1b[2J\x1b[1;1H");
 }
 
 int console_getArrowPressed()
