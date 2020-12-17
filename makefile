@@ -3,7 +3,7 @@
 
 CC := gcc
 workspace := 
-FLAGS := -g
+FLAGS := -g -Wall
 
 
 all: client server
@@ -48,3 +48,9 @@ endif
 ifeq ("$(wildcard $(workspace)obj/client)", "")
 	mkdir $(workspace)obj/client
 endif
+
+rebuild: clean all
+
+clean:
+	cd $(workspace)obj
+	find . -name "*.o" -type f -delete
