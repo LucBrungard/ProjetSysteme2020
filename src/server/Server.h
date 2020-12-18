@@ -35,7 +35,7 @@ void Server_onDisconnectedClient(Server, void (*)(Client));
 /**
  * @brief  Event triggered when a client sent a message to the server. The data is already allocated for 32000 bytes.
  * @param Server server to use
- * @param  size_t(*)(Client,void*,size_t,void*) function to call when the event is triggered. Note : void* is the data, size_t is its size, void* is the response data and the return value is the size of the response 
+ * @param  size_t(*)(Client,void*,size_t,void*) function to call when the event is triggered. Note : void* is the data, size_t is its size, void* is the response data and the return value is the size of the response (0 for no response)
  * @return void
  */
 void Server_onMessageRecieved(Server, size_t (*)(Client, void *, size_t, void *));

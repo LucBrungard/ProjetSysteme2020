@@ -61,8 +61,13 @@ ssize_t Client_send(Client client, void *request, size_t reqSize, void *response
         return 0;
     }
     send(client->_fdSocket, request, reqSize, 0);
-    ssize_t respSize = recv(client->_fdSocket, response, 4800, 0);
-    if (respSize == -1)
-        close(client->_fdSocket);
-    return respSize;
+    if (response != NULL)
+    {
+        ssize_t respSize = recv(client->_fdSocket, response, 4800, 0);
+        if (respSize == -1)
+            close(client->_fdSocket);
+        return respSize;
+    }
+    else
+        return 0;
 }

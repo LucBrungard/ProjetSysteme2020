@@ -59,7 +59,8 @@ void *clientThread(void *arg)
             size_t respSize = 0;
             if (con->server->_onMessage != NULL)
                 respSize = (*con->server->_onMessage)(&client, buffer, readBytes, response);
-            send(con->fdSocket, response, respSize, 0);
+            if (respSize != 0)
+                send(con->fdSocket, response, respSize, 0);
             free(response);
         }
         else

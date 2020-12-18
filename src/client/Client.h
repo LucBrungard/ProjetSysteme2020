@@ -42,7 +42,7 @@ void Client_destroy(Client);
  * @param Client client to use
  * @param void* data to send
  * @param  size_t size of the data to send
- * @param  void* buffer to write the response data inside
+ * @param  void* buffer to write the response data inside, or NULL if no response is expected
  * @return the size of the response, or -1 if the client got disconnected
  */
 ssize_t Client_send(Client, void *, size_t, void *);
