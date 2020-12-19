@@ -69,7 +69,7 @@ void viewList(char *name, char *surname)
         bool refresh = false;
         bool confirmation = false;
         console_clearScreen();
-        printf("Page %d sur %d :\n", page + 1, pageCount);
+        printf("Page %d sur %d :\n", page + 1, pageCount == 0 ? 1 : pageCount);
         int selection = -1;
         int displayedEntries = quantity <= 10 ? quantity : (pageCount - 1 == page ? quantity % 10 : 10);
         for (int i = page * 10; i < page * 10 + displayedEntries; ++i)
@@ -147,6 +147,24 @@ void viewList(char *name, char *surname)
                 {
                     refresh = true;
                     fullRefresh = true;
+                    char _b[220];
+                    void *buffer = _b;
+                    *(uint8_t *)buffer = REMOVE_REQUEST;
+                    buffer += sizeof(uint8_t);
+                    buffer += serializeId(name, surname, buffer);
+                    memcpy(buffer, list[selection + page * 10], 10 * sizeof(char));
+                    uint8_t response;
+                    Client_send(client, _b, (size_t)buffer - (size_t)_b + 10 * sizeof(char), &response);
+                    console_clearScreen();
+                    console_formatSystemForegroundMode("RETOUR", CONSOLE_COLOR_BRIGHT_YELLOW, CONSOLE_FLAG_REVERSE_COLOR);
+                    console_setCursorPosition(2, 4);
+                    if (response)
+                        console_formatSystemForeground("Réservation annulée !", CONSOLE_COLOR_BRIGHT_GREEN);
+                    else
+                        console_formatSystemForeground("Impossible d'annuler la réservation, veuillez réessayer.", CONSOLE_COLOR_BRIGHT_RED);
+                    console_setCursorPosition(1, 15);
+                    while (console_getArrowPressed() != CONSOLE_KEY_RETURN)
+                        ;
                 }
                 break;
             }

@@ -132,6 +132,49 @@ size_t message(Client client, void *data, size_t dataSize, void *buffer)
     }
     break;
 
+    case REMOVE_REQUEST:
+    {
+        char name[100], surname[100];
+        char code[11];
+        code[10] = '\0';
+        data += deserializeId(data, name, surname);
+        memcpy(code, data, 10 * sizeof(char));
+        bool found = false;
+        *(uint8_t *)buffer = 0;
+        for (int i = 0; i < 100; i++)
+            if (serverData->places[i]->reservationNumber != NULL)
+            {
+                if (!strcmp(code, serverData->places[i]->reservationNumber))
+                {
+                    found = true;
+                    if (!strcmp(name, serverData->places[i]->name) && !strcmp(surname, serverData->places[i]->surname))
+                    {
+                        *(uint8_t *)buffer = 1;
+                        serverData->places[i]->reservationNumber = NULL;
+                    }
+                    break;
+                }
+            }
+        console_formatSystemForegroundMode("%s@%s", CONSOLE_COLOR_BRIGHT_BLUE, CONSOLE_FLAG_BOLD, Client_getUsername(client), Client_getIpS(client));
+        printf("Demande d'annulation du dossier n°");
+        console_formatMode(code, CONSOLE_FLAG_UNDERLINE);
+        printf(" ");
+        if (*(uint8_t *)buffer)
+            console_formatSystemForeground("autorisée", CONSOLE_COLOR_BRIGHT_GREEN);
+        else
+        {
+            console_formatSystemForeground("refusée", CONSOLE_COLOR_BRIGHT_RED);
+            printf(", raison : ");
+            if (found)
+                console_formatSystemForeground("mauvais utilisateur", CONSOLE_COLOR_BRIGHT_YELLOW);
+            else
+                console_formatSystemForeground("dossier introuvable", CONSOLE_COLOR_BRIGHT_YELLOW);
+        }
+        printf("\n");
+        return sizeof(uint8_t);
+    }
+    break;
+
     case PLACE_REQUEST:
     {
         char name[100], surname[100];
@@ -166,11 +209,20 @@ size_t message(Client client, void *data, size_t dataSize, void *buffer)
         console_formatSystemForeground("%d", CONSOLE_COLOR_BRIGHT_YELLOW, place + 1);
         printf(" ");
         if (*(uint8_t *)buffer)
+        {
             console_formatSystemForeground("autorisée", CONSOLE_COLOR_BRIGHT_GREEN);
+            printf(", dossier n°");
+            console_formatMode(serverData->places[place]->reservationNumber, CONSOLE_FLAG_UNDERLINE);
+        }
         else
+        {
             console_formatSystemForeground("refusée", CONSOLE_COLOR_BRIGHT_RED);
-        printf(", dossier n°");
-        console_formatMode(serverData->places[place]->reservationNumber, CONSOLE_FLAG_UNDERLINE);
+            printf(", raison : ");
+            if (place > 99)
+                console_formatSystemForeground("numéro de place incorrect", CONSOLE_COLOR_BRIGHT_YELLOW);
+            else
+                console_formatSystemForeground("place déjà occupée", CONSOLE_COLOR_BRIGHT_YELLOW);
+        }
         printf("\n");
         return sizeof(uint8_t);
     }
