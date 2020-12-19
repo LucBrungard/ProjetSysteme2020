@@ -5,12 +5,14 @@
 #include <time.h>
 #include <pthread.h>
 #include <semaphore.h>
+#include <sys/stat.h>
 #include "Server.h"
 #include "../consoleManagement.h"
 #include "../requests.h"
 
 //mutex
 static sem_t serverDataAccess;
+
 /*
 * fonction désérialisant un nom/prénom passé via un buffer
 */
@@ -45,6 +47,109 @@ typedef struct _serverData_
 } * ServerData;
 
 static ServerData serverData;
+static FILE *dataStream;
+
+/*
+* fonction écrivant dans un flux les données du server
+*/
+void saveServerData(FILE *file)
+{
+    //point sensible
+    sem_wait(&serverDataAccess);
+    fseek(file, 0, SEEK_SET);
+    fwrite("SDAT", 4 * sizeof(char), 1, file);
+    //buffer utilisé pour remplir le flux
+    uint8_t _b[320];
+    for (int i = 0; i < 100; ++i)
+    {
+        //on rempli le buffer avant d'écrire dans le flux
+        void *buffer = _b;
+        //s'il n'y a pas de réservation, on mets les tailles à 0
+        size_t nameSize = serverData->places[i]->reservationNumber ? strlen(serverData->places[i]->name) : 0;
+        size_t surnameSize = serverData->places[i]->reservationNumber ? strlen(serverData->places[i]->surname) : 0;
+        *(uint8_t *)buffer = nameSize;
+        buffer += sizeof(uint8_t);
+        *(uint8_t *)buffer = surnameSize;
+        buffer += sizeof(uint8_t);
+        if (serverData->places[i]->reservationNumber)
+        {
+            //s'il y a réservation, on écrit les données dans le buffer
+            memcpy(buffer, serverData->places[i]->reservationNumber, 10 * sizeof(char));
+            buffer += sizeof(char) * 10;
+            memcpy(buffer, serverData->places[i]->name, nameSize * sizeof(char));
+            buffer += nameSize * sizeof(char);
+            memcpy(buffer, serverData->places[i]->surname, surnameSize * sizeof(char));
+            buffer += surnameSize * sizeof(char);
+        }
+        else
+        {
+            //s'il n'y a pas de réservation, on mets un dossier rempli du caractère à valeur ASCII=0
+            for (int j = 0; j < 10; ++j)
+            {
+                *(char *)buffer = 0;
+                buffer += sizeof(char);
+            }
+        }
+        //on écrit tout dans le flux
+        fwrite(_b, (size_t)buffer - (size_t)_b, 1, file);
+    }
+    //on oublie pas de flush les données non écrites
+    fflush(file);
+    sem_post(&serverDataAccess);
+}
+void loadServerData(FILE *file)
+{
+    //point sensible
+    sem_wait(&serverDataAccess);
+    fseek(file, 0, SEEK_END);
+    //on vérifie que le flux possède plus de 4 octets
+    if (ftell(file) < 4)
+    {
+        sem_post(&serverDataAccess);
+        return;
+    }
+    fseek(file, 0, SEEK_SET);
+    uint8_t _b[310];
+    //on récupère les 4 premiers octets
+    fread(_b, sizeof(char) * 4, 1, file);
+    _b[4] = '\0';
+    //on vérifie que le format de fichier est correct
+    if (strcmp("SDAT", (char *)_b))
+    {
+        sem_post(&serverDataAccess);
+        return;
+    }
+    for (int i = 0; i < 100; ++i)
+    {
+        //on charge d'abord les tailles du nom/prénom sauvegardés, et le numéro de dossier
+        fread(_b, sizeof(uint8_t), 12, file);
+        void *buffer = _b;
+        size_t nameSize = *(uint8_t *)buffer;
+        buffer += sizeof(uint8_t);
+        size_t surnameSize = *(uint8_t *)buffer;
+        buffer += sizeof(uint8_t);
+        //s'il s'agit du dossier nul
+        if (*(char *)buffer == 0)
+            serverData->places[i]->reservationNumber = NULL;
+        else
+        {
+            //sinon, on alloue le dossier, nom et prénom
+            serverData->places[i]->reservationNumber = (char *)malloc(sizeof(char) * 11);
+            serverData->places[i]->reservationNumber[10] = '\0';
+            memcpy(serverData->places[i]->reservationNumber, buffer, sizeof(char) * 10);
+            buffer = _b;
+            fread(_b, sizeof(char) * (nameSize + surnameSize), 1, file);
+            serverData->places[i]->name = (char *)malloc(sizeof(char) * (nameSize + 1));
+            serverData->places[i]->surname = (char *)malloc(sizeof(char) * (surnameSize + 1));
+            memcpy(serverData->places[i]->name, buffer, sizeof(char) * nameSize);
+            buffer += sizeof(char) * nameSize;
+            serverData->places[i]->name[nameSize] = '\0';
+            memcpy(serverData->places[i]->surname, buffer, sizeof(char) * surnameSize);
+            serverData->places[i]->surname[nameSize] = '\0';
+        }
+    }
+    sem_post(&serverDataAccess);
+}
 
 void clientConnected(Client client)
 {
@@ -220,6 +325,7 @@ size_t message(Client client, void *data, size_t dataSize, void *buffer)
                 }
             }
         sem_post(&serverDataAccess);
+        saveServerData(dataStream);
         //logs
         console_formatSystemForegroundMode("%s@%s", CONSOLE_COLOR_BRIGHT_BLUE, CONSOLE_FLAG_BOLD, Client_getUsername(client), Client_getIpS(client));
         printf("Demande d'annulation du dossier n°");
@@ -277,6 +383,8 @@ size_t message(Client client, void *data, size_t dataSize, void *buffer)
                 *(uint8_t *)buffer = 0; //dossier déjà réservé
             sem_post(&serverDataAccess);
         }
+        if (*(uint8_t *)buffer)
+            saveServerData(dataStream);
         //logs
         console_formatSystemForegroundMode("%s@%s", CONSOLE_COLOR_BRIGHT_BLUE, CONSOLE_FLAG_BOLD, Client_getUsername(client), Client_getIpS(client));
         printf(":Demande de réservation de la place ");
@@ -328,10 +436,21 @@ int main(int argc, char **argv, char **args)
     }
     if (argc < 2)
     {
-        console_formatSystemForeground("Usage : server <port>", CONSOLE_COLOR_BRIGHT_RED);
+        console_formatSystemForeground("Usage : server <port> <fichier de sauvegarde (optionel)>", CONSOLE_COLOR_BRIGHT_RED);
         printf("\n");
         return 1;
     }
+    char *file = "serverData.sdat";
+    if (argc > 2)
+        file = argv[2];
+    struct stat buffer;
+    if (stat(file, &buffer) == 0)
+    {
+        dataStream = fopen(file, "r+b");
+        loadServerData(dataStream);
+    }
+    else
+        dataStream = fopen(file, "w+b");
     uint16_t port = atoi(argv[1]);
     Server server = Server_create(port);
     if (!server)
