@@ -49,7 +49,7 @@ void Client_disconnect(Client client)
 {
     close(client->_fdSocket);
 }
-void Client_dedstroy(Client client)
+void Client_destroy(Client client)
 {
     free(client);
 }
