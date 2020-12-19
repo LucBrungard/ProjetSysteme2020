@@ -3,9 +3,13 @@
 #include <string.h>
 #include <stdint.h>
 #include <time.h>
+#include <pthread.h>
+#include <semaphore.h>
 #include "Server.h"
 #include "../consoleManagement.h"
 #include "../requests.h"
+
+static sem_t serverDataAccess;
 
 size_t deserializeId(void *buffer, char *name, char *surname)
 {
@@ -64,6 +68,8 @@ size_t message(Client client, void *data, size_t dataSize, void *buffer)
         void *quantityPtr = buffer;
         buffer += sizeof(uint8_t);
         uint8_t quantity = 0;
+        sem_wait(&serverDataAccess);
+
         for (int i = 0; i < 100; i++)
             if (serverData->places[i]->reservationNumber != NULL)
                 if (!strcmp(serverData->places[i]->name, name) && !strcmp(serverData->places[i]->surname, surname))
@@ -74,6 +80,7 @@ size_t message(Client client, void *data, size_t dataSize, void *buffer)
                     buffer += 10 * sizeof(char);
                     ++quantity;
                 }
+        sem_post(&serverDataAccess);
         *(uint8_t *)quantityPtr = quantity;
         console_formatSystemForegroundMode("%s@%s", CONSOLE_COLOR_BRIGHT_BLUE, CONSOLE_FLAG_BOLD, Client_getUsername(client), Client_getIpS(client));
         printf(":Demande de visualisation des réservations, ");
@@ -105,6 +112,7 @@ size_t message(Client client, void *data, size_t dataSize, void *buffer)
     {
         char name[100], surname[100];
         deserializeId(data, name, surname);
+        sem_wait(&serverDataAccess);
         for (int i = 0; i < 13; i++)
         {
             uint8_t currState = 0;
@@ -126,6 +134,7 @@ size_t message(Client client, void *data, size_t dataSize, void *buffer)
             *(uint8_t *)buffer = currState;
             buffer += sizeof(uint8_t);
         }
+        sem_post(&serverDataAccess);
         console_formatSystemForegroundMode("%s@%s", CONSOLE_COLOR_BRIGHT_BLUE, CONSOLE_FLAG_BOLD, Client_getUsername(client), Client_getIpS(client));
         printf(":Demande de visualisation des places disponibles\n");
         return 13 * sizeof(uint8_t);
@@ -141,6 +150,7 @@ size_t message(Client client, void *data, size_t dataSize, void *buffer)
         memcpy(code, data, 10 * sizeof(char));
         bool found = false;
         *(uint8_t *)buffer = 0;
+        sem_wait(&serverDataAccess);
         for (int i = 0; i < 100; i++)
             if (serverData->places[i]->reservationNumber != NULL)
             {
@@ -150,11 +160,15 @@ size_t message(Client client, void *data, size_t dataSize, void *buffer)
                     if (!strcmp(name, serverData->places[i]->name) && !strcmp(surname, serverData->places[i]->surname))
                     {
                         *(uint8_t *)buffer = 1;
+                        free(serverData->places[i]->reservationNumber);
+                        free(serverData->places[i]->name);
+                        free(serverData->places[i]->surname);
                         serverData->places[i]->reservationNumber = NULL;
                     }
                     break;
                 }
             }
+        sem_post(&serverDataAccess);
         console_formatSystemForegroundMode("%s@%s", CONSOLE_COLOR_BRIGHT_BLUE, CONSOLE_FLAG_BOLD, Client_getUsername(client), Client_getIpS(client));
         printf("Demande d'annulation du dossier n°");
         console_formatMode(code, CONSOLE_FLAG_UNDERLINE);
@@ -185,24 +199,24 @@ size_t message(Client client, void *data, size_t dataSize, void *buffer)
             *(uint8_t *)buffer = 0;
         else
         {
+            sem_wait(&serverDataAccess);
             if (serverData->places[place]->reservationNumber == NULL)
             {
                 char code[11];
                 code[10] = '\0';
                 for (int i = 0; i < 10; i++)
                     code[i] = '0' + (rand() % 10);
-                //TODO LOCK
                 serverData->places[place]->name = (char *)malloc((strlen(name) + 1) * sizeof(char));
                 serverData->places[place]->surname = (char *)malloc((strlen(surname) + 1) * sizeof(char));
                 serverData->places[place]->reservationNumber = (char *)malloc(11 * sizeof(char));
                 memcpy(serverData->places[place]->name, name, (strlen(name) + 1) * sizeof(char));
                 memcpy(serverData->places[place]->surname, surname, (strlen(name) + 1) * sizeof(char));
                 memcpy(serverData->places[place]->reservationNumber, code, 11 * sizeof(char));
-                //TODO UNLOCK
                 *(uint8_t *)buffer = 1;
             }
             else
                 *(uint8_t *)buffer = 0;
+            sem_post(&serverDataAccess);
         }
         console_formatSystemForegroundMode("%s@%s", CONSOLE_COLOR_BRIGHT_BLUE, CONSOLE_FLAG_BOLD, Client_getUsername(client), Client_getIpS(client));
         printf(":Demande de réservation de la place ");
@@ -212,7 +226,9 @@ size_t message(Client client, void *data, size_t dataSize, void *buffer)
         {
             console_formatSystemForeground("autorisée", CONSOLE_COLOR_BRIGHT_GREEN);
             printf(", dossier n°");
+            sem_wait(&serverDataAccess);
             console_formatMode(serverData->places[place]->reservationNumber, CONSOLE_FLAG_UNDERLINE);
+            sem_post(&serverDataAccess);
         }
         else
         {
@@ -234,6 +250,7 @@ size_t message(Client client, void *data, size_t dataSize, void *buffer)
 int main(int argc, char **argv, char **args)
 {
     srand(time(NULL));
+    sem_init(&serverDataAccess, PTHREAD_PROCESS_SHARED, 1);
     Place _pl[100];
     serverData = (ServerData)malloc(sizeof(struct _serverData_));
     serverData->places = _pl;
