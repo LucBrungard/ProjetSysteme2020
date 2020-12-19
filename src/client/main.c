@@ -23,37 +23,175 @@ size_t serializeId(char *name, char *surname, void *buffer)
 
 void viewList(char *name, char *surname)
 {
-    char _b1[300];
-    void *buffer = _b1;
-    char _b2[1024];
-    void *response = _b2;
-    *(uint8_t *)buffer = LIST_REQUEST;
-    buffer += sizeof(uint8_t);
-    int bufferSize = sizeof(uint8_t) + serializeId(name, surname, buffer);
-    Client_send(client, _b1, bufferSize, response);
-    int quantity = *(uint8_t *)response;
-    response += sizeof(uint8_t);
-    char **list = (char **)malloc(sizeof(char *));
-    for (int i = 0; i < quantity; i++)
+
+    int page = 0;
+    int pageCount;
+    bool exit = false;
+    bool fullRefresh = true;
+    int quantity;
+    uint8_t *listId = NULL;
+    char **list;
+    while (!exit)
     {
-        list[i] = (char *)malloc(sizeof(char) * 11);
-        memcpy(list[i], response, sizeof(char) * 10);
-        list[i][10] = '\0';
-        response += sizeof(char) * 10;
-        printf("%s\n", list[i]);
+        if (fullRefresh)
+        {
+            fullRefresh = false;
+            if (listId != NULL)
+            {
+                for (int i = 0; i < quantity; i++)
+                    free(list[i]);
+                free(list);
+                free(listId);
+            }
+            uint8_t _b1[300];
+            void *buffer = _b1;
+            uint8_t _b2[1024];
+            void *response = _b2;
+            *(uint8_t *)buffer = LIST_REQUEST;
+            buffer += sizeof(uint8_t);
+            int bufferSize = sizeof(uint8_t) + serializeId(name, surname, buffer);
+            Client_send(client, _b1, bufferSize, response);
+            quantity = *(uint8_t *)response;
+            response += sizeof(uint8_t);
+            list = (char **)malloc(sizeof(char *) * quantity);
+            listId = (uint8_t *)malloc(sizeof(uint8_t) * quantity);
+            for (int i = 0; i < quantity; i++)
+            {
+                listId[i] = *(uint8_t *)response;
+                response += sizeof(uint8_t);
+                list[i] = (char *)malloc(sizeof(char) * 11);
+                memcpy(list[i], response, sizeof(char) * 10);
+                list[i][10] = '\0';
+                response += sizeof(char) * 10;
+            }
+            pageCount = quantity / 10 + (quantity % 10 != 0);
+        }
+        bool refresh = false;
+        bool confirmation = false;
+        console_clearScreen();
+        printf("Page %d sur %d :\n", page + 1, pageCount);
+        int selection = -1;
+        int displayedEntries = quantity <= 10 ? quantity : (pageCount - 1 == page ? quantity % 10 : 10);
+        for (int i = page * 10; i < page * 10 + displayedEntries; ++i)
+        {
+            console_formatSystemForeground("%d", CONSOLE_COLOR_BRIGHT_YELLOW, listId[i] + 1);
+            printf(" : ");
+            console_formatSystemForeground("%s", CONSOLE_COLOR_BRIGHT_GREY, list[i]);
+            printf(" ");
+            console_formatSystemForeground("X", CONSOLE_COLOR_BRIGHT_RED);
+            printf("\n");
+        }
+        console_formatSystemForegroundMode("RETOUR", CONSOLE_COLOR_BRIGHT_YELLOW, CONSOLE_FLAG_REVERSE_COLOR);
+        printf("\n");
+        while (!refresh)
+        {
+            int key = CONSOLE_KEY_OTHER;
+            while (key == CONSOLE_KEY_OTHER)
+                key = console_getArrowPressed();
+            if (selection == -1)
+            {
+                console_setCursorPosition(1, displayedEntries + 2);
+                console_formatSystemForeground("RETOUR", CONSOLE_COLOR_BRIGHT_YELLOW);
+            }
+            else
+            {
+                console_setCursorPosition(1, 2 + selection);
+                console_formatSystemForeground("%d", CONSOLE_COLOR_BRIGHT_YELLOW, listId[page * 10 + selection] + 1);
+                printf(" : ");
+                console_formatSystemForeground("%s", CONSOLE_COLOR_BRIGHT_GREY, list[page * 10 + selection]);
+                printf(" ");
+                console_formatSystemForeground("X", CONSOLE_COLOR_BRIGHT_RED);
+                console_eraseEndOfLine();
+            }
+            switch (key)
+            {
+            case CONSOLE_KEY_UP:
+                if (selection > -1)
+                    selection--;
+                else
+                    selection = displayedEntries - 1;
+                confirmation = false;
+                break;
+            case CONSOLE_KEY_DOWN:
+                if (selection < displayedEntries - 1)
+                    selection++;
+                else
+                    selection = -1;
+                confirmation = false;
+                break;
+            case CONSOLE_KEY_LEFT:
+                if (page > 0)
+                {
+                    page--;
+                    refresh = true;
+                    confirmation = false;
+                }
+                break;
+            case CONSOLE_KEY_RIGHT:
+                if (page < pageCount - 1)
+                {
+                    page++;
+                    refresh = true;
+                    confirmation = false;
+                }
+                break;
+            case CONSOLE_KEY_RETURN:
+                if (selection == -1)
+                {
+                    refresh = true;
+                    exit = true;
+                }
+                else if (!confirmation)
+                    confirmation = true;
+                else
+                {
+                    refresh = true;
+                    fullRefresh = true;
+                }
+                break;
+            }
+            if (!refresh)
+            {
+                if (selection == -1)
+                {
+                    console_setCursorPosition(1, displayedEntries + 2);
+                    console_formatSystemForegroundMode("RETOUR", CONSOLE_COLOR_BRIGHT_YELLOW, CONSOLE_FLAG_REVERSE_COLOR);
+                }
+                else
+                {
+                    console_setCursorPosition(1, 2 + selection);
+                    if (!confirmation)
+                    {
+                        console_formatSystemForegroundMode("%d", CONSOLE_COLOR_BRIGHT_YELLOW, CONSOLE_FLAG_REVERSE_COLOR, listId[page * 10 + selection] + 1);
+                        printf(" : ");
+                        console_formatSystemForegroundMode("%s", CONSOLE_COLOR_BRIGHT_GREY, CONSOLE_FLAG_REVERSE_COLOR, list[page * 10 + selection]);
+                        printf(" ");
+                        console_formatSystemForegroundMode("X", CONSOLE_COLOR_BRIGHT_RED, CONSOLE_FLAG_REVERSE_COLOR);
+                    }
+                    else
+                    {
+                        console_formatSystemForeground("%d", CONSOLE_COLOR_BRIGHT_YELLOW, listId[page * 10 + selection] + 1);
+                        printf(" : ");
+                        console_formatSystemForeground("%s", CONSOLE_COLOR_BRIGHT_GREY, list[page * 10 + selection]);
+                        printf(" ");
+                        console_formatSystemColor("Annuler la réservation ?", CONSOLE_COLOR_WHITE, CONSOLE_COLOR_RED);
+                    }
+                }
+            }
+        }
     }
 
     for (int i = 0; i < quantity; i++)
         free(list[i]);
     free(list);
-    //TODO see/remove element
+    free(listId);
 }
 
 void requestPlace(char *name, char *surname)
 {
-    char _b1[300];
+    uint8_t _b1[300];
     void *buffer = _b1;
-    char _b2[1024];
+    uint8_t _b2[1024];
     void *response = _b2;
     *(uint8_t *)buffer = AVAILABILITY_REQUEST;
     buffer += sizeof(uint8_t);
@@ -150,8 +288,36 @@ void requestPlace(char *name, char *surname)
                 ++currSelection;
             break;
         case CONSOLE_KEY_RETURN:
-
-            return;
+            if (currSelection == 100)
+                return;
+            if (places[currSelection])
+            {
+                uint8_t _b[300];
+                void *buffer = _b;
+                *(uint8_t *)buffer = PLACE_REQUEST;
+                buffer += sizeof(uint8_t);
+                buffer += serializeId(name, surname, buffer);
+                *(uint8_t *)buffer = currSelection;
+                uint8_t response;
+                if (Client_send(client, _b, (size_t)buffer - (size_t)_b + sizeof(uint8_t), &response) == -1)
+                {
+                    console_clearScreen();
+                    console_formatSystemForeground("Client déconnecté", CONSOLE_COLOR_BRIGHT_RED);
+                    printf("\n");
+                    exit(-1);
+                }
+                console_clearScreen();
+                console_formatSystemForegroundMode("RETOUR", CONSOLE_COLOR_BRIGHT_YELLOW, CONSOLE_FLAG_REVERSE_COLOR);
+                console_setCursorPosition(2, 4);
+                if (response)
+                    console_formatSystemForeground("Place réservée !", CONSOLE_COLOR_BRIGHT_GREEN);
+                else
+                    console_formatSystemForeground("Impossible de réserver la place, veuillez réessayer.", CONSOLE_COLOR_BRIGHT_RED);
+                console_setCursorPosition(1, 15);
+                while (console_getArrowPressed() != CONSOLE_KEY_RETURN)
+                    ;
+                return;
+            }
         }
         if (currSelection == 100)
         {
@@ -168,6 +334,7 @@ void requestPlace(char *name, char *surname)
             else
                 console_formatSystemForegroundMode("%d", places[currSelection] ? CONSOLE_COLOR_BRIGHT_GREEN : CONSOLE_COLOR_BRIGHT_RED, CONSOLE_FLAG_REVERSE_COLOR, currSelection + 1);
         }
+        console_setCursorPosition(1, 16);
     }
 }
 
@@ -217,7 +384,7 @@ int main(int argc, char **argv, char **envVars)
     printf("\n");
     {
         uint8_t nameSize = strlen(name), surnameSize = strlen(surname);
-        char _b[201];
+        uint8_t _b[201];
         void *buffer = _b;
         *(uint8_t *)buffer = NAME_REQUEST;
         buffer += sizeof(uint8_t);
