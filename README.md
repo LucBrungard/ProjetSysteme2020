@@ -7,7 +7,7 @@ Logiciel permettant de gérer des billets de concert, dans le but d'un projet sc
 Le programme est utilisable uniquement sous Linux. Pour compiler, simplement éxectuer le makefile :
 
 ```
-    make
+make
 ```
  
  Les executables se trouvent dans `bin/client` et `bin/server`.
