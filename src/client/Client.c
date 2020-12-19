@@ -8,6 +8,8 @@
 #include <arpa/inet.h>
 #include "Client.h"
 
+#define SOCKET_BUFFER_SIZE 4800
+
 struct _client_
 {
     int _fdSocket;
@@ -36,6 +38,7 @@ Client Client_createI(char *username, struct in_addr ip, uint16_t port)
         printf("Unable to connect\n");
         return NULL;
     }
+    //On envoie l'username du client au server pour qu'il puisse l'utiliser par la suite
     send(client->_fdSocket, username, strlen(username), 0);
     return client;
 }
@@ -63,7 +66,7 @@ ssize_t Client_send(Client client, void *request, size_t reqSize, void *response
     send(client->_fdSocket, request, reqSize, 0);
     if (response != NULL)
     {
-        ssize_t respSize = recv(client->_fdSocket, response, 4800, 0);
+        ssize_t respSize = recv(client->_fdSocket, response, SOCKET_BUFFER_SIZE, 0);
         if (respSize == -1)
             close(client->_fdSocket);
         return respSize;

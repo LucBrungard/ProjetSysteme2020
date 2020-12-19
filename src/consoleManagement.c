@@ -4,6 +4,9 @@
 #include <termios.h>
 #include <string.h>
 #include <stdbool.h>
+
+//* Une bibliothèque que Nathan a écrit, disponible ici -> https://github.com/WildGoat07/console-management
+
 //https://www.includehelp.com/c-programs/gotoxy-clrscr-getch-getche-for-gcc-linux.aspx
 static struct termios old, new;
 
