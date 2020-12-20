@@ -52,5 +52,4 @@ endif
 rebuild: clean all
 
 clean:
-	cd $(workspace)obj
-	find . -name "*.o" -type f -delete
+	rm -rf obj
