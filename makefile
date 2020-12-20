@@ -53,3 +53,4 @@ rebuild: clean all
 
 clean:
 	rm -rf obj
+	rm -rf bin
