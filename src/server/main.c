@@ -375,7 +375,7 @@ size_t message(Client client, void *data, size_t dataSize, void *buffer)
                 serverData->places[place]->reservationNumber = (char *)malloc(11 * sizeof(char));
                 //on copie les valeurs à sauvegarder
                 memcpy(serverData->places[place]->name, name, (strlen(name) + 1) * sizeof(char));
-                memcpy(serverData->places[place]->surname, surname, (strlen(name) + 1) * sizeof(char));
+                memcpy(serverData->places[place]->surname, surname, (strlen(surname) + 1) * sizeof(char));
                 memcpy(serverData->places[place]->reservationNumber, code, 11 * sizeof(char));
                 *(uint8_t *)buffer = 1; //plus d'erreurs
             }
