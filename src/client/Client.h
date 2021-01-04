@@ -10,9 +10,9 @@ typedef struct _client_ *Client;
 /**
  * @brief  Initialize the client
  * @param  char* username
- * @param char* IP address
- * @param uint16_t port
- * @return the newly created server, or NULL if there is an error
+ * @param char* IP address of the server
+ * @param uint16_t port of the server
+ * @return the newly created client, or NULL if there is an error
  */
 Client Client_createS(char *, char *, uint16_t);
 
@@ -20,19 +20,19 @@ Client Client_createS(char *, char *, uint16_t);
  * @brief  Initialize the client
  * @param  Client client to initialize 
  * @param  char* username
- * @param in_addr IP address
- * @param uint16_t port
- * @return the newly created server, or NULL if there is an error
+ * @param in_addr IP address of the server
+ * @param uint16_t port of the server
+ * @return the newly created client, or NULL if there is an error
  */
 Client Client_createI(char *, struct in_addr, uint16_t);
 /**
- * @brief  estroys the client
+ * @brief  disconnects the client
  * @param Client client to use
  * @return void
  */
 void Client_disconnect(Client);
 /**
- * @brief  estroys the client
+ * @brief  destroys the client
  * @param Client client to use
  * @return void
  */
