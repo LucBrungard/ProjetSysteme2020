@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
+#include <unistd.h>
 #include "Client.h"
 #include "../consoleManagement.h"
 #include "../requests.h"
@@ -123,6 +124,7 @@ void viewList(char *name, char *surname)
 
             //on attend une touche de flèche valide...
             int key = CONSOLE_KEY_OTHER;
+            console_setCursorPosition(1, 15);
             while (key == CONSOLE_KEY_OTHER)
                 key = console_getArrowPressed();
             //on affiche la valeur sur laquelle on se trouve, comme si notre curseur n'était pas desus (en gros, on efface la selection)
@@ -362,6 +364,7 @@ void requestPlace(char *name, char *surname)
     while (true)
     {
         int key = CONSOLE_KEY_OTHER;
+        console_setCursorPosition(1, 15);
         while (key == CONSOLE_KEY_OTHER)
             key = console_getArrowPressed();
         //comme dans viewList(), on efface l'ancienne valeur du curseur
@@ -483,7 +486,6 @@ int main(int argc, char **argv, char **envVars)
     port = atoi(argv[2]);
     //par défaut, on ne connait pas l'username
     char username[100] = "unknown";
-    username[0] = '\0';
     for (int i = 0; envVars[i] != NULL; i++)
     {
         //on cherche l'username dans les variables d'environnement
@@ -503,6 +505,7 @@ int main(int argc, char **argv, char **envVars)
     char name[100];
     char surname[100];
 
+    client = Client_createS(username, address, port);
     //on demande les informations du client
     console_clearScreen();
     printf("Prénom:");
@@ -512,7 +515,6 @@ int main(int argc, char **argv, char **envVars)
     printf("Nom:");
     fgets(surname, 100, stdin);
     surname[strlen(surname) - 1] = '\0';
-    client = Client_createS(username, address, port);
     if (!client)
         return 0;
     console_clearScreen();
